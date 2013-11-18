@@ -476,44 +476,6 @@ get_number_indent(lnum)
     return (int)col;
 }
 
-#ifdef FEAT_LINEBREAK
-/* 
- * Return appropriate space number for breakindent, taking influencing 
- * parameters into account. Window must be specified, since it is not
- * necessarily always the current one. If lnum==0, current line is calculated,
- * specified line otherwise.
- */
-   int
-get_breakindent_win (wp,lnum)
-    win_T*	wp;
-    linenr_T	lnum;
-{
-    int bri;
-    /* window width minus barren space, i.e. what rests for text */
-    const int eff_wwidth = W_WIDTH(wp)
-	- (wp->w_p_nu && !vim_strchr(p_cpo,CPO_NUMCOL)?number_width(wp):0);
-	/* - (*p_sbr == NUL ? 0 : vim_strsize(p_sbr)); */
-
-    bri = get_indent_buf(wp->w_buffer,lnum?lnum:wp->w_cursor.lnum) + wp->w_p_brishift;
-
-    /* if numbering and 'c' in 'cpoptions', cancel it out effectively */
-    /* (this could be replaced by an equivalent call to win_col_off2()) */
-    if (curwin->w_p_nu && vim_strchr(p_cpo, CPO_NUMCOL))
-	bri += number_width(wp);
-    
-    /* never indent past left window margin */
-    if (bri < 0)
-	bri = 0;
-    /* always leave at least bri_min characters on the left,
-     * if text width is sufficient */
-    else if (bri > eff_wwidth - wp->w_p_brimin)
-	bri = eff_wwidth - wp->w_p_brimin < 0 ? 0 : eff_wwidth - wp->w_p_brimin;
-
-    return bri;
-}
-#endif
-
-
 #if defined(FEAT_CINDENT) || defined(FEAT_SMARTINDENT)
 
 static int cin_is_cinword __ARGS((char_u *line));
@@ -1996,7 +1958,7 @@ plines_win_nofold(wp, lnum)
     s = ml_get_buf(wp->w_buffer, lnum, FALSE);
     if (*s == NUL)		/* empty line */
 	return 1;
-    col = win_linetabsize(wp, s, (colnr_T)MAXCOL, lnum);
+    col = win_linetabsize(wp, s, (colnr_T)MAXCOL);
 
     /*
      * If list mode is on, then the '$' at the end of the line may take up one
@@ -2052,7 +2014,7 @@ plines_win_col(wp, lnum, column)
     col = 0;
     while (*s != NUL && --column >= 0)
     {
-	col += win_lbr_chartabsize(wp, s, (colnr_T)col, NULL, lnum);
+	col += win_lbr_chartabsize(wp, s, (colnr_T)col, NULL);
 	mb_ptr_adv(s);
     }
 
@@ -2064,7 +2026,7 @@ plines_win_col(wp, lnum, column)
      * 'ts') -- webb.
      */
     if (*s == TAB && (State & NORMAL) && (!wp->w_p_list || lcs_tab1))
-	col += win_lbr_chartabsize(wp, s, (colnr_T)col, NULL, lnum) - 1;
+	col += win_lbr_chartabsize(wp, s, (colnr_T)col, NULL) - 1;
 
     /*
      * Add column offset for 'number', 'relativenumber', 'foldcolumn', etc.
@@ -9101,7 +9063,7 @@ get_lisp_indent()
 		amount = 0;
 		while (*that && col)
 		{
-		    amount += lbr_chartabsize_adv(&that, (colnr_T)amount, pos->lnum);
+		    amount += lbr_chartabsize_adv(&that, (colnr_T)amount);
 		    col--;
 		}
 
@@ -9124,7 +9086,7 @@ get_lisp_indent()
 
 		    while (vim_iswhite(*that))
 		    {
-			amount += lbr_chartabsize(that, (colnr_T)amount, pos->lnum);
+			amount += lbr_chartabsize(that, (colnr_T)amount);
 			++that;
 		    }
 
@@ -9163,14 +9125,14 @@ get_lisp_indent()
 				    --parencount;
 				if (*that == '\\' && *(that+1) != NUL)
 				    amount += lbr_chartabsize_adv(&that,
-							     (colnr_T)amount, pos->lnum);
+							     (colnr_T)amount);
 				amount += lbr_chartabsize_adv(&that,
-							     (colnr_T)amount, pos->lnum);
+							     (colnr_T)amount);
 			    }
 			}
 			while (vim_iswhite(*that))
 			{
-			    amount += lbr_chartabsize(that, (colnr_T)amount, pos->lnum);
+			    amount += lbr_chartabsize(that, (colnr_T)amount);
 			    that++;
 			}
 			if (!*that || *that == ';')

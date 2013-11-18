@@ -166,7 +166,7 @@ coladvance2(pos, addspaces, finetune, wcol)
 #ifdef FEAT_VIRTUALEDIT
 	    if ((addspaces || finetune) && !VIsual_active)
 	    {
-		curwin->w_curswant = linetabsize(line) + one_more;
+		curwin->w_curswant = linetabsize(line, pos->lnum) + one_more;
 		if (curwin->w_curswant > 0)
 		    --curwin->w_curswant;
 	    }
@@ -184,7 +184,7 @@ coladvance2(pos, addspaces, finetune, wcol)
 # endif
 		&& wcol >= (colnr_T)width)
 	{
-	    csize = linetabsize(line);
+	    csize = linetabsize(line, pos->lnum);
 	    if (csize > 0)
 		csize--;
 
@@ -205,10 +205,10 @@ coladvance2(pos, addspaces, finetune, wcol)
 	{
 	    /* Count a tab for what it's worth (if list mode not on) */
 #ifdef FEAT_LINEBREAK
-	    csize = win_lbr_chartabsize(curwin, ptr, col, &head);
+	    csize = win_lbr_chartabsize(curwin, ptr, col, &head, pos->lnum);
 	    mb_ptr_adv(ptr);
 #else
-	    csize = lbr_chartabsize_adv(&ptr, col);
+	    csize = lbr_chartabsize_adv(&ptr, col, pos->lnum);
 #endif
 	    col += csize;
 	}

@@ -90,6 +90,12 @@ $VIMRUNTIME	starting.txt	/*$VIMRUNTIME*
 'bl'	options.txt	/*'bl'*
 'bomb'	options.txt	/*'bomb'*
 'breakat'	options.txt	/*'breakat'*
+'breakindent'	options.txt	/*'breakindent'*
+'breakindentmin'	options.txt	/*'breakindentmin'*
+'breakindentshift'	options.txt	/*'breakindentshift'*
+'bri'	options.txt	/*'bri'*
+'brimin'	options.txt	/*'brimin'*
+'brishift'	options.txt	/*'brishift'*
 'brk'	options.txt	/*'brk'*
 'browsedir'	options.txt	/*'browsedir'*
 'bs'	options.txt	/*'bs'*
@@ -6318,6 +6324,7 @@ hebrew.txt	hebrew.txt	/*hebrew.txt*
 help	helphelp.txt	/*help*
 help-context	help.txt	/*help-context*
 help-summary	usr_02.txt	/*help-summary*
+help-tags	tags	1
 help-translated	helphelp.txt	/*help-translated*
 help-writing	helphelp.txt	/*help-writing*
 help-xterm-window	helphelp.txt	/*help-xterm-window*

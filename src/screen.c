@@ -2974,10 +2974,15 @@ win_line(wp, lnum, startrow, endrow, nochange)
 # define WL_SIGN	WL_FOLD		/* column for signs */
 #endif
 #define WL_NR		WL_SIGN + 1	/* line number */
-#if defined(FEAT_LINEBREAK) || defined(FEAT_DIFF)
-# define WL_SBR		WL_NR + 1	/* 'showbreak' or 'diff' */
+#ifdef FEAT_LINEBREAK
+# define WL_BRI		WL_NR + 1	/* 'breakindent' */
 #else
-# define WL_SBR		WL_NR
+# define WL_BRI		WL_NR
+#endif
+#if defined(FEAT_LINEBREAK) || defined(FEAT_DIFF)
+# define WL_SBR		WL_BRI + 1	/* 'showbreak' or 'diff' */
+#else
+# define WL_SBR		WL_BRI
 #endif
 #define WL_LINE		WL_SBR + 1	/* text in the line */
     int		draw_state = WL_START;	/* what to draw next */
@@ -3316,7 +3321,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #endif
 	while (vcol < v && *ptr != NUL)
 	{
-	    c = win_lbr_chartabsize(wp, ptr, (colnr_T)vcol, NULL);
+	    c = win_lbr_chartabsize(wp, ptr, (colnr_T)vcol, NULL, lnum);
 	    vcol += c;
 #ifdef FEAT_MBYTE
 	    prev_ptr = ptr;
@@ -3697,6 +3702,30 @@ win_line(wp, lnum, startrow, endrow, nochange)
 #endif
 		}
 	    }
+
+#ifdef FEAT_LINEBREAK 
+	    /* draw 'breakindent': indent wrapped text accordingly */
+	    if (draw_state == WL_BRI -1 && n_extra == 0){
+		draw_state = WL_BRI;
+# ifdef FEAT_DIFF
+		/* FIXME: handle (filler_todo > 0): or modify showbreak so that ---- lines are shorter by the amount needed? */
+# endif
+		if (wp->w_p_bri && row != startrow){ /* FIXME: what is startrow? Don't we need it as well?? */
+		    p_extra = NUL;
+		    c_extra = ' ';
+		    n_extra = get_breakindent_win(wp,lnum);
+		    char_attr = 0; /* was: hl_attr(HLF_AT); */
+		    /* FIXME: why do we need to adjust vcol if showbreak does not?? */
+		    // vcol += n_extra;
+		    /* FIXME: is this relevant here? copied shamelessly from showbreak */
+		    /* Correct end of highlighted area for 'breakindent',
+		     * required when 'linebreak' is also set. */
+		    if (tocol == vcol)
+			tocol += n_extra;
+		}
+	    }
+#endif
+	    
 
 #if defined(FEAT_LINEBREAK) || defined(FEAT_DIFF)
 	    if (draw_state == WL_SBR - 1 && n_extra == 0)
@@ -4409,7 +4438,7 @@ win_line(wp, lnum, startrow, endrow, nochange)
 # ifdef FEAT_MBYTE
 				has_mbyte ? mb_l :
 # endif
-				1), (colnr_T)vcol, NULL) - 1;
+				1), (colnr_T)vcol, NULL, lnum) - 1;
 		    c_extra = ' ';
 		    if (vim_iswhite(c))
 		    {

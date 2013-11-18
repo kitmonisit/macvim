@@ -134,6 +134,14 @@ typedef struct
     int		wo_arab;
 # define w_p_arab w_onebuf_opt.wo_arab	/* 'arabic' */
 #endif
+#ifdef FEAT_LINEBREAK
+    int		wo_bri;
+# define w_p_bri w_onebuf_opt.wo_bri	/* 'breakindent' */
+    long	wo_brimin;
+# define w_p_brimin w_onebuf_opt.wo_brimin /* 'breakindentmin' */
+    long	wo_brishift;
+# define w_p_brishift w_onebuf_opt.wo_brishift /* 'breakindentshift' */
+#endif
 #ifdef FEAT_DIFF
     int		wo_diff;
 # define w_p_diff w_onebuf_opt.wo_diff	/* 'diff' */

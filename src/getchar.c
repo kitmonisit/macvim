@@ -2633,7 +2633,7 @@ vgetorpeek(advance)
 				    if (!vim_iswhite(ptr[col]))
 					curwin->w_wcol = vcol;
 				    vcol += lbr_chartabsize(ptr + col,
-							       (colnr_T)vcol);
+							       (colnr_T)vcol, curwin->w_cursor.lnum);
 #ifdef FEAT_MBYTE
 				    if (has_mbyte)
 					col += (*mb_ptr2len)(ptr + col);

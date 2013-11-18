@@ -335,7 +335,7 @@ get_beval_info(beval, getword, winp, lnump, textp, colp)
 	{
 	    /* Not past end of the file. */
 	    lbuf = ml_get_buf(wp->w_buffer, lnum, FALSE);
-	    if (col <= win_linetabsize(wp, lbuf, (colnr_T)MAXCOL))
+	    if (col <= win_linetabsize(wp, lbuf, (colnr_T)MAXCOL, lnum))
 	    {
 		/* Not past end of line. */
 		if (getword)

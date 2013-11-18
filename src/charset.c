@@ -852,24 +852,26 @@ win_chartabsize(wp, p, col)
  * taking into account the size of a tab.
  */
     int
-linetabsize(s)
+linetabsize(s, lnum)
     char_u	*s;
+    linenr_T	lnum;
 {
-    return linetabsize_col(0, s);
+    return linetabsize_col(0, s, lnum);
 }
 
 /*
  * Like linetabsize(), but starting at column "startcol".
  */
     int
-linetabsize_col(startcol, s)
+linetabsize_col(startcol, s, lnum)
     int		startcol;
     char_u	*s;
+    linenr_T	lnum;
 {
     colnr_T	col = startcol;
 
     while (*s != NUL)
-	col += lbr_chartabsize_adv(&s, col);
+	col += lbr_chartabsize_adv(&s, col, lnum);
     return (int)col;
 }
 
@@ -877,16 +879,17 @@ linetabsize_col(startcol, s)
  * Like linetabsize(), but for a given window instead of the current one.
  */
     int
-win_linetabsize(wp, p, len)
+win_linetabsize(wp, p, len, lnum)
     win_T	*wp;
     char_u	*p;
     colnr_T	len;
+    linenr_T	lnum;
 {
     colnr_T	col = 0;
     char_u	*s;
 
     for (s = p; *s != NUL && (len == MAXCOL || s < p + len); mb_ptr_adv(s))
-	col += win_lbr_chartabsize(wp, s, col, NULL);
+	col += win_lbr_chartabsize(wp, s, col, NULL, lnum);
     return (int)col;
 }
 
@@ -1021,12 +1024,13 @@ vim_isprintc_strict(c)
  * like chartabsize(), but also check for line breaks on the screen
  */
     int
-lbr_chartabsize(s, col)
+lbr_chartabsize(s, col, lnum)
     unsigned char	*s;
     colnr_T		col;
+    linenr_T		lnum;
 {
 #ifdef FEAT_LINEBREAK
-    if (!curwin->w_p_lbr && *p_sbr == NUL)
+    if (!curwin->w_p_lbr && *p_sbr == NUL && !curwin->w_p_bri)
     {
 #endif
 #ifdef FEAT_MBYTE
@@ -1036,7 +1040,7 @@ lbr_chartabsize(s, col)
 	RET_WIN_BUF_CHARTABSIZE(curwin, curbuf, s, col)
 #ifdef FEAT_LINEBREAK
     }
-    return win_lbr_chartabsize(curwin, s, col, NULL);
+    return win_lbr_chartabsize(curwin, s, col, NULL, lnum);
 #endif
 }
 
@@ -1044,13 +1048,14 @@ lbr_chartabsize(s, col)
  * Call lbr_chartabsize() and advance the pointer.
  */
     int
-lbr_chartabsize_adv(s, col)
+lbr_chartabsize_adv(s, col, lnum)
     char_u	**s;
     colnr_T	col;
+    linenr_T	lnum;
 {
     int		retval;
 
-    retval = lbr_chartabsize(*s, col);
+    retval = lbr_chartabsize(*s, col, lnum);
     mb_ptr_adv(*s);
     return retval;
 }
@@ -1061,13 +1066,17 @@ lbr_chartabsize_adv(s, col)
  * If "headp" not NULL, set *headp to the size of what we for 'showbreak'
  * string at start of line.  Warning: *headp is only set if it's a non-zero
  * value, init to 0 before calling.
+ *
+ * linenr argument needed if in visual highlighting and breakindent=on, then
+ * the line calculated is not current; if 0, normal functionality is preserved.
  */
     int
-win_lbr_chartabsize(wp, s, col, headp)
+win_lbr_chartabsize(wp, s, col, headp, lnum)
     win_T	*wp;
     char_u	*s;
     colnr_T	col;
     int		*headp UNUSED;
+    linenr_T	lnum;
 {
 #ifdef FEAT_LINEBREAK
     int		c;
@@ -1086,9 +1095,9 @@ win_lbr_chartabsize(wp, s, col, headp)
     int		n;
 
     /*
-     * No 'linebreak' and 'showbreak': return quickly.
+     * No 'linebreak' and 'showbreak' and 'breakindent': return quickly.
      */
-    if (!wp->w_p_lbr && *p_sbr == NUL)
+    if (!wp->w_p_lbr && !wp->w_p_bri && *p_sbr == NUL)
 #endif
     {
 #ifdef FEAT_MBYTE
@@ -1163,11 +1172,12 @@ win_lbr_chartabsize(wp, s, col, headp)
 # endif
 
     /*
-     * May have to add something for 'showbreak' string at start of line
+     * May have to add something for 'breakindent' and/or 'showbreak'
+     * string at start of line.
      * Set *headp to the size of what we add.
      */
     added = 0;
-    if (*p_sbr != NUL && wp->w_p_wrap && col != 0)
+    if ((*p_sbr != NUL || wp->w_p_bri) && wp->w_p_wrap && col != 0)
     {
 	numberextra = win_col_off(wp);
 	col += numberextra + mb_added;
@@ -1180,7 +1190,12 @@ win_lbr_chartabsize(wp, s, col, headp)
 	}
 	if (col == 0 || col + size > (colnr_T)W_WIDTH(wp))
 	{
-	    added = vim_strsize(p_sbr);
+	    added = 0;
+	    if (*p_sbr != NUL)
+		added += vim_strsize(p_sbr);
+	    if (wp->w_p_bri)
+		added += get_breakindent_win(wp,lnum);
+
 	    if (tab_corr)
 		size += (added / wp->w_buffer->b_p_ts) * wp->w_buffer->b_p_ts;
 	    else
@@ -1288,12 +1303,13 @@ getvcol(wp, pos, start, cursor, end)
 
     /*
      * This function is used very often, do some speed optimizations.
-     * When 'list', 'linebreak' and 'showbreak' are not set use a simple loop.
+     * When 'list', 'linebreak', 'showbreak' and 'breakindent' are not set
+     * use a simple loop.
      * Also use this when 'list' is set but tabs take their normal size.
      */
     if ((!wp->w_p_list || lcs_tab1 != NUL)
 #ifdef FEAT_LINEBREAK
-	    && !wp->w_p_lbr && *p_sbr == NUL
+	    && !wp->w_p_lbr && *p_sbr == NUL && !wp->w_p_bri
 #endif
        )
     {
@@ -1355,7 +1371,7 @@ getvcol(wp, pos, start, cursor, end)
 	{
 	    /* A tab gets expanded, depending on the current column */
 	    head = 0;
-	    incr = win_lbr_chartabsize(wp, ptr, vcol, &head);
+	    incr = win_lbr_chartabsize(wp, ptr, vcol, &head, pos->lnum);
 	    /* make sure we don't go past the end of the line */
 	    if (*ptr == NUL)
 	    {

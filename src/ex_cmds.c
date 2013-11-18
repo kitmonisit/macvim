@@ -261,7 +261,7 @@ linelen(has_tab)
 	;
     save = *last;
     *last = NUL;
-    len = linetabsize(line);		/* get line length */
+    len = linetabsize(line, curwin->w_cursor.lnum); /* get line length */
     if (has_tab != NULL)		/* check for embedded TAB */
 	*has_tab = (vim_strrchr(first, TAB) != NULL);
     *last = save;

@@ -6345,7 +6345,7 @@ nfa_regmatch(prog, start, submatch, m)
 		result = nfa_re_num_cmp(t->state->val, t->state->c - NFA_VCOL,
 		    (long_u)win_linetabsize(
 			    reg_win == NULL ? curwin : reg_win,
-			    regline, (colnr_T)(reginput - regline), reglnum + reg_firstlnum) + 1);
+			    regline, (colnr_T)(reginput - regline)) + 1);
 		if (result)
 		{
 		    add_here = TRUE;
