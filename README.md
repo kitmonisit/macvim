@@ -19,6 +19,8 @@ My personal compile procedure is
 
     :::bash
     $ git clone https://github.com/kitmonisit/macvim-breakindent.git macvim
+    $ git tag      # see the latest tag with the breakindent patch
+    $ git checkout snapshot-72_breakindent-7.4.16-fc19
     $ cd macvim/src
     $ ./configure --enable-pythoninterp \
                   --with-python-config-dir=$(brew --prefix)/Cellar/python/2.7.6/Frameworks/Python.framework/Versions/Current/lib/python2.7/config \
